@@ -1,0 +1,28 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# QML / Qt
+.qmlcache/
+*.qmlc
+*.jsc
+qml.qrc.depends
+
+# Local user configs / logs
+*.log
+.DS_Store
+*~
+*.swp
+*.swo
+
+# Editor / IDE
+.vscode/
+.idea/
