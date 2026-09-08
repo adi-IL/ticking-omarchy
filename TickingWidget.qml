@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 
 Item {
     id: root
@@ -21,11 +23,54 @@ Item {
         bar: root.bar
     }
 
+    IpcHandler {
+        target: "ticking"
+
+        function open(): void { root.open() }
+        function close(): void { root.close() }
+        function toggle(): void { root.toggle() }
+        function status(): string {
+            return JSON.stringify({
+                isPopupOpen: stateEngine.isPopupOpen,
+                activeTab: stateEngine.activeTab,
+                days: stateEngine.countdownData.days,
+                hours: stateEngine.countdownData.hours,
+                progressPercent: stateEngine.countdownData.progressPercent,
+                quoteText: stateEngine.currentQuoteText,
+                quoteAuthor: stateEngine.currentQuoteAuthor,
+                stopwatchRunning: stateEngine.stopwatchRunning,
+                stopwatchElapsed: stateEngine.stopwatchElapsedMs
+            });
+        }
+        function selectTab(idx: int): void {
+            stateEngine.activeTab = idx;
+            stateEngine.updateAllMetrics();
+        }
+        function startStopwatch(): void { stateEngine.startStopwatch(); }
+        function pauseStopwatch(): void { stateEngine.pauseStopwatch(); }
+        function resetStopwatch(): void { stateEngine.resetStopwatch(); }
+        function nextQuote(): void { stateEngine.fetchNextQuote(false); }
+    }
+
+    function injectPopup() {
+        if (popupLoader.item) {
+            popupLoader.item.stateEngine = stateEngine;
+            popupLoader.item.bar = root.bar;
+            popupLoader.item.anchorItem = pillContainer;
+            popupLoader.item.hostWidget = root;
+        }
+    }
+
+    onBarChanged: injectPopup()
+    onSettingsChanged: injectPopup()
+
     Component.onCompleted: {
         stateEngine.loadInitialConfig(root.settings);
+        Qt.callLater(injectPopup);
     }
 
     // Tooltip handling
+    readonly property Item pillContainerItem: pillContainer
     readonly property string tooltipString: {
         var title = stateEngine.customTitle || "NEW HORIZON";
         if (stateEngine.countdownData.isExpired) {
@@ -41,6 +86,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         height: Math.min(24, parent.height - 2)
         implicitWidth: pillRow.implicitWidth + 12
+        width: implicitWidth
         radius: 6
 
         color: mouseArea.containsMouse
@@ -120,18 +166,22 @@ Item {
     }
 
     function open() {
+        injectPopup();
         if (bar && typeof bar.requestPopout === "function") {
             bar.requestPopout(root);
         }
         stateEngine.isPopupOpen = true;
+        if (typeof stateEngine.onPopupOpened === "function") {
+            stateEngine.onPopupOpened();
+        }
         if (popupLoader.item) {
-            popupLoader.item.open();
+            popupLoader.item.showPopup();
         }
     }
 
     function close() {
         if (popupLoader.item) {
-            popupLoader.item.close();
+            popupLoader.item.hidePopup();
         }
         stateEngine.isPopupOpen = false;
         if (bar && typeof bar.releasePopout === "function") {
@@ -141,13 +191,13 @@ Item {
 
     function closeForPopoutSwitch() {
         if (popupLoader.item) {
-            popupLoader.item.close();
+            popupLoader.item.hidePopup();
         }
         stateEngine.isPopupOpen = false;
     }
 
     function toggle() {
-        if (popupLoader.item && popupLoader.item.visible) {
+        if (popupLoader.item && popupLoader.item.isOpen) {
             root.close();
         } else {
             root.open();

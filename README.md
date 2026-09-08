@@ -27,7 +27,7 @@ This project is built as a **native Omarchy bar widget module** (`type: "qml"` i
 ```
 ticking-omarchy/
 ├── TickingWidget.qml          # Bar face Item (injected with `bar`, `moduleName`, `settings`)
-├── TickingPopupWindow.qml     # Anchored Quickshell PopupWindow surface
+├── TickingPopupWindow.qml     # Native Omarchy KeyboardPanel layer-shell surface
 ├── TickingPopup.qml           # Obsidian card container holding the full HUD
 ├── TickingState.qml           # Reactive central state engine (timers & metrics)
 ├── components/
@@ -70,10 +70,10 @@ Add the widget entry to `bar.layout.right` or `bar.layout.center`:
         {
           "id": "ticking",
           "type": "qml",
-          "source": "~/ILdev/own/ticking-omarchy/TickingWidget.qml",
+          "source": "~/.config/omarchy/bar/modules/ticking.qml",
           "customTitle": "NEW HORIZON",
           "targetTimestamp": "2026-10-25",
-          "startTimestamp": "2026-01-01",
+          "startTimestamp": "2026-09-03",
           "accentColor": "#00E599",
           "showMilliseconds": true,
           "showProgress": true,
@@ -97,6 +97,35 @@ omarchy-shell shell reloadConfig
 
 ---
 
+## IPC Control
+
+Ticking registers a native `IpcHandler` target with the shell for scripting, keybinds, and automation:
+
+```bash
+# Toggle the HUD popout
+omarchy-shell ticking toggle
+
+# Open or close explicitly
+omarchy-shell ticking open
+omarchy-shell ticking close
+
+# Switch tabs (0: Countdown, 1: Clock, 2: Stopwatch)
+omarchy-shell ticking selectTab 1
+
+# Stopwatch controls
+omarchy-shell ticking startStopwatch
+omarchy-shell ticking pauseStopwatch
+omarchy-shell ticking resetStopwatch
+
+# Fetch or rotate to next quote
+omarchy-shell ticking nextQuote
+
+# Query live state as JSON
+omarchy-shell ticking status
+```
+
+---
+
 ## Configuration Reference
 
 Settings can be specified inline in `shell.json` under the widget object, or edited in `~/.config/omarchy/ticking-widget.json`:
@@ -104,7 +133,7 @@ Settings can be specified inline in `shell.json` under the widget object, or edi
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `targetTimestamp` | string | `"2026-10-25"` | Target civil date (`YYYY-MM-DD`, local midnight) |
-| `startTimestamp` | string | `"2026-01-01"` | Baseline date (`YYYY-MM-DD`) for progress calculation |
+| `startTimestamp` | string | `"2026-09-03"` | Baseline date (`YYYY-MM-DD`) for progress calculation |
 | `customTitle` | string | `"NEW HORIZON"` | Headline displayed above countdown |
 | `accentColor` | string | `"#00E599"` | Emerald / custom accent glow color |
 | `showMilliseconds` | bool | `true` | Display sub-second ticker on countdown |

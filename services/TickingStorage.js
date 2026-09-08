@@ -5,7 +5,7 @@
 
 var DEFAULT_CONFIG = {
     targetTimestamp: "2026-10-25",
-    startTimestamp: "2026-01-01",
+    startTimestamp: "2026-09-03",
     customTitle: "NEW HORIZON",
     themeMode: "obsidian",
     showMilliseconds: true,
@@ -16,7 +16,7 @@ var DEFAULT_CONFIG = {
     showProgress: true,
     showPanelBadge: true,
     showQuoteBar: true,
-    quoteIntervalMinutes: 180,
+    quoteIntervalMinutes: 15,
     quoteArchetype: "adaptive",
     quotePersonalFocus: "",
     quoteApiKey: "",
@@ -43,47 +43,31 @@ function loadSettings(baseSettings, callback) {
         }
     }
 
-    var xhr = new XMLHttpRequest();
-    // Resolve home directory path
-    var homePath = "/home/adi-IL/.config/omarchy/ticking-widget.json";
-    xhr.open("GET", "file://" + homePath, true);
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (xhr.status === 200 || (xhr.responseText && xhr.responseText.length > 0)) {
-                try {
-                    var parsed = JSON.parse(xhr.responseText);
-                    for (var key in parsed) {
-                        state[key] = parsed[key];
-                    }
-                } catch (e) {
-                    console.warn("TickingStorage: Failed to parse saved config:", e);
-                }
-            }
-            if (typeof callback === "function") {
-                callback(state);
-            }
-        }
-    };
-    xhr.onerror = function () {
-        if (typeof callback === "function") {
-            callback(state);
-        }
-    };
-    try {
-        xhr.send();
-    } catch (e) {
-        if (typeof callback === "function") {
-            callback(state);
-        }
+    if (typeof callback === "function") {
+        callback(state);
     }
+}
+
+function toBase64(str) {
+    if (typeof Buffer !== "undefined") {
+        return Buffer.from(str).toString("base64");
+    }
+    if (typeof Qt !== "undefined" && Qt.btoa) {
+        if (typeof TextEncoder !== "undefined") {
+            try {
+                return Qt.btoa(new TextEncoder().encode(str));
+            } catch (e) {}
+        }
+        return Qt.btoa(str);
+    }
+    return "";
 }
 
 function saveSettings(state, bar) {
     if (!state || typeof state !== "object") return;
     try {
         var jsonStr = JSON.stringify(state, null, 2);
-        // Base64 encode to safely transmit through shell command
-        var b64 = Qt.btoa ? Qt.btoa(jsonStr) : Buffer.from(jsonStr).toString("base64");
+        var b64 = toBase64(jsonStr);
         var cmd = "mkdir -p ~/.config/omarchy && echo '" + b64 + "' | base64 -d > ~/.config/omarchy/ticking-widget.json";
         if (bar && typeof bar.run === "function") {
             bar.run(cmd);

@@ -11,8 +11,10 @@ Item {
 
     signal closeRequested()
 
-    width: 380
-    height: cardLayout.implicitHeight + 24
+    implicitWidth: 380
+    implicitHeight: cardLayout.implicitHeight + 24
+    width: implicitWidth
+    height: implicitHeight
 
     // Obsidian Glass Container
     Rectangle {
@@ -22,15 +24,12 @@ Item {
         radius: 12
         color: stateEngine ? stateEngine.themeColors.cardBg : Qt.rgba(0.03, 0.03, 0.03, 0.88)
         border.width: 1
-        border.color: mouseTracker.containsMouse
+        border.color: mouseTracker.hovered
             ? (stateEngine ? stateEngine.themeColors.cardBorderHover : Qt.rgba(1, 1, 1, 0.18))
             : (stateEngine ? stateEngine.themeColors.cardBorder : Qt.rgba(1, 1, 1, 0.09))
 
-        MouseArea {
+        HoverHandler {
             id: mouseTracker
-            anchors.fill: parent
-            hoverEnabled: true
-            acceptedButtons: Qt.NoButton
         }
 
         // Specular highlight beam across top edge
@@ -46,8 +45,8 @@ Item {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.04) }
                 GradientStop {
-                    position: Math.max(0.05, Math.min(0.95, mouseTracker.mouseX / Math.max(1, hudCard.width)))
-                    color: mouseTracker.containsMouse
+                    position: Math.max(0.05, Math.min(0.95, (mouseTracker.point ? mouseTracker.point.position.x : 190) / Math.max(1, hudCard.width)))
+                    color: mouseTracker.hovered
                         ? (stateEngine ? stateEngine.themeColors.specularGlint : Qt.rgba(1, 1, 1, 0.45))
                         : Qt.rgba(1, 1, 1, 0.20)
                 }
@@ -128,6 +127,7 @@ Item {
             // View Switcher Stack
             Item {
                 Layout.fillWidth: true
+                Layout.preferredHeight: currentContentItem ? currentContentItem.implicitHeight : 140
                 implicitHeight: currentContentItem ? currentContentItem.implicitHeight : 140
 
                 readonly property Item currentContentItem: {

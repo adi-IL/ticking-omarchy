@@ -1,4 +1,6 @@
 import QtQuick
+import Quickshell
+import Quickshell.Io
 import "./services/QuoteLibrary.js" as QuoteLibrary
 import "./services/QuoteClient.js" as QuoteClient
 import "./services/TickingStorage.js" as TickingStorage
@@ -8,9 +10,25 @@ QtObject {
 
     property var bar: null
 
+    property string configFilePath: {
+        var h = (bar && bar.home) ? bar.home : Quickshell.env("HOME");
+        return (h || "") + "/.config/omarchy/ticking-widget.json";
+    }
+
+    property FileView configFileView: FileView {
+        path: stateRoot.configFilePath
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            stateRoot.applyJsonConfig(text());
+        }
+        onFileChanged: reload()
+        onLoadFailed: {}
+    }
+
     // Configuration Properties
     property string targetTimestamp: "2026-10-25"
-    property string startTimestamp: "2026-01-01"
+    property string startTimestamp: "2026-09-03"
     property string customTitle: "NEW HORIZON"
     property string themeMode: "obsidian"
     property bool showMilliseconds: true
@@ -21,7 +39,7 @@ QtObject {
     property bool showProgress: true
     property bool showPanelBadge: true
     property bool showQuoteBar: true
-    property int quoteIntervalMinutes: 180
+    property int quoteIntervalMinutes: 15
     property string quoteArchetype: "adaptive"
     property string quotePersonalFocus: ""
     property string quoteApiKey: ""
@@ -129,10 +147,25 @@ QtObject {
 
     // Quote Timer
     property var quoteTimer: Timer {
-        interval: Math.max(45, stateRoot.quoteIntervalMinutes) * 60 * 1000
-        running: stateRoot.showQuoteBar && stateRoot.isPopupOpen
+        interval: Math.max(1, stateRoot.quoteIntervalMinutes) * 60 * 1000
+        running: stateRoot.showQuoteBar
         repeat: true
         onTriggered: stateRoot.fetchNextQuote(false)
+    }
+
+    function onPopupOpened() {
+        updateAllMetrics();
+        if (currentQuoteText === QuoteClient.DEFAULT_QUOTE_TEXT || currentQuoteText === "") {
+            fetchNextQuote(false);
+        }
+    }
+
+    function copyToClipboard(str) {
+        if (!str) return;
+        var b64 = TickingStorage.toBase64 ? TickingStorage.toBase64(str) : "";
+        if (b64 && bar && typeof bar.run === "function") {
+            bar.run("echo '" + b64 + "' | base64 -d | wl-copy");
+        }
     }
 
     function pad2(n) {
@@ -164,7 +197,7 @@ QtObject {
     }
 
     function defaultStartDate() {
-        return new Date(2026, 0, 1, 0, 0, 0, 0);
+        return new Date(2026, 8, 3, 0, 0, 0, 0);
     }
 
     function isoWeekNumber(dateObj) {
@@ -413,43 +446,57 @@ QtObject {
         });
     }
 
+    function applyConfig(cfg) {
+        if (!cfg || typeof cfg !== "object") return;
+        if (cfg.targetTimestamp) targetTimestamp = cfg.targetTimestamp;
+        if (cfg.startTimestamp) startTimestamp = cfg.startTimestamp;
+        if (cfg.customTitle) customTitle = cfg.customTitle;
+        if (cfg.themeMode) themeMode = cfg.themeMode;
+        if (cfg.showMilliseconds !== undefined) showMilliseconds = cfg.showMilliseconds;
+        if (cfg.translucency !== undefined) translucency = cfg.translucency;
+        if (cfg.activeTab !== undefined) activeTab = cfg.activeTab;
+        if (cfg.hourFormat24 !== undefined) hourFormat24 = cfg.hourFormat24;
+        if (cfg.accentColor) accentColor = cfg.accentColor;
+        if (cfg.showProgress !== undefined) showProgress = cfg.showProgress;
+        if (cfg.showPanelBadge !== undefined) showPanelBadge = cfg.showPanelBadge;
+        if (cfg.showQuoteBar !== undefined) showQuoteBar = cfg.showQuoteBar;
+        if (cfg.quoteIntervalMinutes !== undefined) quoteIntervalMinutes = cfg.quoteIntervalMinutes;
+        if (cfg.quoteArchetype) quoteArchetype = cfg.quoteArchetype;
+        if (cfg.quotePersonalFocus !== undefined) quotePersonalFocus = cfg.quotePersonalFocus;
+        if (cfg.quoteApiKey !== undefined) quoteApiKey = cfg.quoteApiKey;
+        if (cfg.cachedQuoteText) currentQuoteText = cfg.cachedQuoteText;
+        if (cfg.cachedQuoteAuthor) currentQuoteAuthor = cfg.cachedQuoteAuthor;
+
+        if (cfg.stopwatchLapsJson) {
+            try {
+                var parsedLaps = JSON.parse(cfg.stopwatchLapsJson);
+                if (Array.isArray(parsedLaps)) stopwatchLaps = parsedLaps;
+            } catch (e) {}
+        }
+        if (cfg.stopwatchElapsedMs !== undefined) stopwatchElapsedMs = cfg.stopwatchElapsedMs;
+        if (cfg.stopwatchRunning && cfg.stopwatchStartTimestamp > 0) {
+            var now = Date.now();
+            var added = Math.max(0, now - cfg.stopwatchStartTimestamp);
+            stopwatchElapsedMs += added;
+            stopwatchLastTimestamp = now;
+            stopwatchRunning = true;
+        }
+        updateAllMetrics();
+    }
+
+    function applyJsonConfig(jsonStr) {
+        if (!jsonStr || jsonStr.trim() === "") return;
+        try {
+            var cfg = JSON.parse(jsonStr);
+            applyConfig(cfg);
+        } catch (e) {
+            console.warn("TickingState: Failed to parse configFileView content:", e);
+        }
+    }
+
     function loadInitialConfig(injectedSettings) {
         TickingStorage.loadSettings(injectedSettings, function (cfg) {
-            if (!cfg) return;
-            if (cfg.targetTimestamp) targetTimestamp = cfg.targetTimestamp;
-            if (cfg.startTimestamp) startTimestamp = cfg.startTimestamp;
-            if (cfg.customTitle) customTitle = cfg.customTitle;
-            if (cfg.themeMode) themeMode = cfg.themeMode;
-            if (cfg.showMilliseconds !== undefined) showMilliseconds = cfg.showMilliseconds;
-            if (cfg.translucency !== undefined) translucency = cfg.translucency;
-            if (cfg.activeTab !== undefined) activeTab = cfg.activeTab;
-            if (cfg.hourFormat24 !== undefined) hourFormat24 = cfg.hourFormat24;
-            if (cfg.accentColor) accentColor = cfg.accentColor;
-            if (cfg.showProgress !== undefined) showProgress = cfg.showProgress;
-            if (cfg.showPanelBadge !== undefined) showPanelBadge = cfg.showPanelBadge;
-            if (cfg.showQuoteBar !== undefined) showQuoteBar = cfg.showQuoteBar;
-            if (cfg.quoteIntervalMinutes !== undefined) quoteIntervalMinutes = cfg.quoteIntervalMinutes;
-            if (cfg.quoteArchetype) quoteArchetype = cfg.quoteArchetype;
-            if (cfg.quotePersonalFocus !== undefined) quotePersonalFocus = cfg.quotePersonalFocus;
-            if (cfg.quoteApiKey !== undefined) quoteApiKey = cfg.quoteApiKey;
-            if (cfg.cachedQuoteText) currentQuoteText = cfg.cachedQuoteText;
-            if (cfg.cachedQuoteAuthor) currentQuoteAuthor = cfg.cachedQuoteAuthor;
-
-            if (cfg.stopwatchLapsJson) {
-                try {
-                    var parsedLaps = JSON.parse(cfg.stopwatchLapsJson);
-                    if (Array.isArray(parsedLaps)) stopwatchLaps = parsedLaps;
-                } catch (e) {}
-            }
-            if (cfg.stopwatchElapsedMs !== undefined) stopwatchElapsedMs = cfg.stopwatchElapsedMs;
-            if (cfg.stopwatchRunning && cfg.stopwatchStartTimestamp > 0) {
-                var now = Date.now();
-                var added = Math.max(0, now - cfg.stopwatchStartTimestamp);
-                stopwatchElapsedMs += added;
-                stopwatchLastTimestamp = now;
-                stopwatchRunning = true;
-            }
-            updateAllMetrics();
+            applyConfig(cfg);
         });
     }
 

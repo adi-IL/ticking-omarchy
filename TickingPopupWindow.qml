@@ -1,44 +1,46 @@
 import QtQuick
 import Quickshell
+import qs.Ui
 
-PopupWindow {
+KeyboardPanel {
     id: popWindow
 
     property var stateEngine: null
-    property var bar: null
-    property var anchorItem: null
     property var hostWidget: null
+    property bool isOpen: false
 
-    anchor.window: anchorItem && anchorItem.Window ? anchorItem.Window.window : null
-    anchor.item: anchorItem
-    anchor.edges: (bar && bar.position === "bottom") ? Edges.Top : Edges.Bottom
-    anchor.gravity: (bar && bar.position === "bottom") ? Edges.Top : Edges.Bottom
+    anchorItem: hostWidget ? hostWidget.pillContainerItem : null
+    bar: hostWidget ? hostWidget.bar : null
+    owner: hostWidget
 
-    visible: false
-    width: popupContent.width
-    height: popupContent.height
+    open: isOpen
+    padding: 0
+    margin: 6
+    contentWidth: popupContent.implicitWidth || 380
+    contentHeight: popupContent.implicitHeight || 280
 
     TickingPopup {
         id: popupContent
+        anchors.fill: parent
         stateEngine: popWindow.stateEngine
         bar: popWindow.bar
-        opened: popWindow.visible
-        onCloseRequested: popWindow.close()
+        opened: popWindow.isOpen
+        onCloseRequested: popWindow.hidePopup()
     }
 
-    function open() {
-        visible = true;
+    function showPopup() {
+        isOpen = true;
     }
 
-    function close() {
-        visible = false;
+    function hidePopup() {
+        isOpen = false;
         if (hostWidget && typeof hostWidget.onPopupClosed === "function") {
             hostWidget.onPopupClosed();
         }
     }
 
-    function toggle() {
-        if (visible) close();
-        else open();
+    function togglePopup() {
+        if (isOpen) hidePopup();
+        else showPopup();
     }
 }
