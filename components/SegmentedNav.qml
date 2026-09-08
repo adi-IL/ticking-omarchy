@@ -88,7 +88,6 @@ Rectangle {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        navRoot.currentIndex = index;
                         navRoot.tabSelected(index);
                     }
                 }

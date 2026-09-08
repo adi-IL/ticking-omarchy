@@ -4,8 +4,8 @@
 // Manages local state persistence in ~/.config/omarchy/ticking-widget.json
 
 var DEFAULT_CONFIG = {
-    targetTimestamp: "2026-10-25",
-    startTimestamp: "2026-09-03",
+    targetTimestamp: "",
+    startTimestamp: "",
     customTitle: "NEW HORIZON",
     themeMode: "obsidian",
     showMilliseconds: true,
@@ -29,7 +29,11 @@ var DEFAULT_CONFIG = {
 };
 
 function getStoragePath() {
-    return "/home/" + (typeof process !== "undefined" && process.env ? (process.env.USER || "user") : "adi-IL") + "/.config/omarchy/ticking-widget.json";
+    var home = (typeof process !== "undefined" && process.env && process.env.HOME) ? process.env.HOME : (typeof Quickshell !== "undefined" && Quickshell.env ? Quickshell.env("HOME") : "");
+    if (home) {
+        return home + "/.config/omarchy/ticking-widget.json";
+    }
+    return "~/.config/omarchy/ticking-widget.json";
 }
 
 function loadSettings(baseSettings, callback) {
@@ -66,9 +70,12 @@ function toBase64(str) {
 function saveSettings(state, bar) {
     if (!state || typeof state !== "object") return;
     try {
+        var home = (bar && bar.home) ? bar.home : ((typeof process !== "undefined" && process.env && process.env.HOME) ? process.env.HOME : (typeof Quickshell !== "undefined" && Quickshell.env ? Quickshell.env("HOME") : ""));
+        var dir = home ? (home + "/.config/omarchy") : "~/.config/omarchy";
+        var filePath = home ? (home + "/.config/omarchy/ticking-widget.json") : "~/.config/omarchy/ticking-widget.json";
         var jsonStr = JSON.stringify(state, null, 2);
         var b64 = toBase64(jsonStr);
-        var cmd = "mkdir -p ~/.config/omarchy && echo '" + b64 + "' | base64 -d > ~/.config/omarchy/ticking-widget.json";
+        var cmd = "mkdir -p " + dir + " && echo '" + b64 + "' | base64 -d > " + filePath;
         if (bar && typeof bar.run === "function") {
             bar.run(cmd);
         }

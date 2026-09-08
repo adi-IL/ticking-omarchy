@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "adi.ticking",
+  "name": "Ticking: Horizon & Time HUD",
+  "version": "1.2.0",
+  "author": "Aditya Gaurav",
+  "description": "Countdown horizon, world clock, lap stopwatch, and intellect quote companion for Omarchy Linux.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "TickingWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Ticking",
+    "category": "Time",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "customTitle": "NEW HORIZON",
+      "targetTimestamp": "",
+      "startTimestamp": "",
+      "showMilliseconds": true,
+      "showProgress": true,
+      "showPanelBadge": true,
+      "showQuoteBar": true,
+      "accentColor": "#00E599"
+    },
+    "schema": [
+      { "key": "customTitle", "type": "string", "label": "Milestone Title" },
+      { "key": "targetTimestamp", "type": "string", "label": "Target Date (YYYY-MM-DD)" },
+      { "key": "startTimestamp", "type": "string", "label": "Start Date (YYYY-MM-DD)" },
+      { "key": "accentColor", "type": "string", "label": "Accent Glow Color" },
+      { "key": "showMilliseconds", "type": "boolean", "label": "Show Centiseconds" },
+      { "key": "showProgress", "type": "boolean", "label": "Show Progress Bar" },
+      { "key": "showPanelBadge", "type": "boolean", "label": "Show Bar Badge" },
+      { "key": "showQuoteBar", "type": "boolean", "label": "Show Quote Companion" },
+      { "key": "quoteArchetype", "type": "string", "label": "Quote Archetype" },
+      { "key": "hourFormat24", "type": "boolean", "label": "24-Hour Time Format" }
+    ]
+  }
+}

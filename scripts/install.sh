@@ -2,22 +2,41 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OMARCHY_CONFIG_DIR="${HOME}/.config/omarchy"
-MODULES_DIR="${OMARCHY_CONFIG_DIR}/bar/modules"
+PLUGIN_ID="adi.ticking"
+PLUGINS_DIR="${HOME}/.config/omarchy/plugins"
+TARGET_DIR="${PLUGINS_DIR}/${PLUGIN_ID}"
 
-echo "==> Installing Ticking Bar Widget for Omarchy..."
+echo "==> Validating plugin manifest..."
+if command -v omarchy-plugin-validate >/dev/null 2>&1; then
+    omarchy-plugin-validate "${SCRIPT_DIR}"
+elif command -v omarchy >/dev/null 2>&1; then
+    omarchy plugin validate "${SCRIPT_DIR}"
+fi
 
-mkdir -p "${MODULES_DIR}"
+echo "==> Linking plugin to ${TARGET_DIR}..."
+mkdir -p "${PLUGINS_DIR}"
+ln -sfn "${SCRIPT_DIR}" "${TARGET_DIR}"
 
-# Create a clean symlink in Omarchy modules directory
-ln -sfn "${SCRIPT_DIR}/TickingWidget.qml" "${MODULES_DIR}/ticking.qml"
+# Remove obsolete single-file symlink if present
+OBSOLETE_MODULE="${HOME}/.config/omarchy/bar/modules/ticking.qml"
+if [[ -L "${OBSOLETE_MODULE}" || -f "${OBSOLETE_MODULE}" ]]; then
+    rm -f "${OBSOLETE_MODULE}"
+fi
 
-echo "==> Linked TickingWidget.qml to ${MODULES_DIR}/ticking.qml"
+echo "==> Rescanning plugins in Omarchy shell..."
+if command -v omarchy-shell >/dev/null 2>&1; then
+    omarchy-shell shell rescanPlugins 2>/dev/null || true
+fi
+
+echo "==> Enabling plugin ${PLUGIN_ID}..."
+if command -v omarchy-plugin-enable >/dev/null 2>&1; then
+    omarchy-plugin-enable "${PLUGIN_ID}" 2>/dev/null || true
+elif command -v omarchy >/dev/null 2>&1; then
+    omarchy plugin enable "${PLUGIN_ID}" 2>/dev/null || true
+fi
+
 echo ""
-echo "To display the widget on your Omarchy bar, add this entry to bar.layout in ~/.config/omarchy/shell.json:"
-echo ""
-echo '  { "id": "ticking", "type": "qml", "source": "'"${SCRIPT_DIR}/TickingWidget.qml"'" }'
-echo ""
-echo "Then reload your shell configuration:"
-echo "  omarchy-restart-shell"
-echo "  # or: omarchy-shell shell reloadConfig"
+echo "Ticking plugin installed successfully."
+echo "If the widget does not appear automatically, enable it with:"
+echo "  omarchy plugin enable ${PLUGIN_ID}"
+

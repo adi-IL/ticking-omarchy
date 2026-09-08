@@ -15,9 +15,7 @@
       ],
       "right": [
         {
-          "id": "ticking",
-          "type": "qml",
-          "source": "~/.config/omarchy/bar/modules/ticking.qml",
+          "id": "adi.ticking",
           "customTitle": "NEW HORIZON",
           "targetTimestamp": "2026-10-25",
           "startTimestamp": "2026-01-01",

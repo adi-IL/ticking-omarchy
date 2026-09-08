@@ -8,6 +8,7 @@ Item {
     property var stateEngine: null
     property var bar: null
     property bool opened: false
+    property int previousTab: 0
 
     signal closeRequested()
 
@@ -76,7 +77,7 @@ Item {
                 }
 
                 Text {
-                    text: stateEngine ? stateEngine.customTitle : "NEW HORIZON"
+                    text: stateEngine ? (stateEngine.activeTab === 3 ? "SETTINGS" : stateEngine.customTitle) : "NEW HORIZON"
                     color: stateEngine ? stateEngine.themeColors.textPrimary : "#EDEDED"
                     font.family: "sans-serif"
                     font.weight: Font.Bold
@@ -86,6 +87,40 @@ Item {
                 }
 
                 Item { Layout.fillWidth: true }
+
+                // Settings button
+                Rectangle {
+                    Layout.preferredWidth: 20
+                    Layout.preferredHeight: 20
+                    radius: 4
+                    color: settingsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "⚙"
+                        color: (stateEngine && stateEngine.activeTab === 3)
+                            ? stateEngine.accentColor
+                            : (settingsMouse.containsMouse ? "#FFFFFF" : (stateEngine ? stateEngine.themeColors.textMuted : "#71717A"))
+                        font.pixelSize: 12
+                    }
+
+                    MouseArea {
+                        id: settingsMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (!stateEngine) return;
+                            if (stateEngine.activeTab === 3) {
+                                stateEngine.activeTab = (popupRoot.previousTab >= 0 && popupRoot.previousTab < 3) ? popupRoot.previousTab : 0;
+                            } else {
+                                popupRoot.previousTab = stateEngine.activeTab;
+                                stateEngine.activeTab = 3;
+                            }
+                            stateEngine.updateAllMetrics();
+                        }
+                    }
+                }
 
                 // Close button
                 Rectangle {
@@ -118,6 +153,7 @@ Item {
                 themeColors: stateEngine ? stateEngine.themeColors : null
                 onTabSelected: function(idx) {
                     if (stateEngine) {
+                        popupRoot.previousTab = idx;
                         stateEngine.activeTab = idx;
                         stateEngine.updateAllMetrics();
                     }
@@ -134,6 +170,7 @@ Item {
                     if (!stateEngine) return countdownView;
                     if (stateEngine.activeTab === 1) return clockView;
                     if (stateEngine.activeTab === 2) return stopwatchView;
+                    if (stateEngine.activeTab === 3) return settingsView;
                     return countdownView;
                 }
 
@@ -169,6 +206,21 @@ Item {
                     onPauseRequested: if (stateEngine) stateEngine.pauseStopwatch()
                     onResetRequested: if (stateEngine) stateEngine.resetStopwatch()
                     onLapRequested: if (stateEngine) stateEngine.lapStopwatch()
+                }
+
+                Components.SettingsView {
+                    id: settingsView
+                    anchors.fill: parent
+                    visible: stateEngine ? stateEngine.activeTab === 3 : false
+                    stateEngine: popupRoot.stateEngine
+                    accentColor: stateEngine ? stateEngine.accentColor : "#00E599"
+                    themeColors: stateEngine ? stateEngine.themeColors : null
+                    onCloseSettingsRequested: {
+                        if (stateEngine) {
+                            stateEngine.activeTab = (popupRoot.previousTab >= 0 && popupRoot.previousTab < 3) ? popupRoot.previousTab : 0;
+                            stateEngine.updateAllMetrics();
+                        }
+                    }
                 }
             }
 

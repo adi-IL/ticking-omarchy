@@ -27,8 +27,8 @@ QtObject {
     }
 
     // Configuration Properties
-    property string targetTimestamp: "2026-10-25"
-    property string startTimestamp: "2026-09-03"
+    property string targetTimestamp: ""
+    property string startTimestamp: ""
     property string customTitle: "NEW HORIZON"
     property string themeMode: "obsidian"
     property bool showMilliseconds: true
@@ -174,17 +174,44 @@ QtObject {
     }
 
     function parseHorizonDate(value) {
-        var s = (value || "").toString().trim();
-        var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (m) {
-            var y = parseInt(m[1], 10);
-            var mo = parseInt(m[2], 10) - 1;
-            var d = parseInt(m[3], 10);
-            var local = new Date(y, mo, d, 0, 0, 0, 0);
-            if (!isNaN(local.getTime())) {
-                return local;
+        if (!value) return null;
+        if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+        var s = value.toString().trim();
+        if (!s) return null;
+
+        var dateMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (dateMatch) {
+            var y = parseInt(dateMatch[1], 10);
+            var mo = parseInt(dateMatch[2], 10) - 1;
+            var d = parseInt(dateMatch[3], 10);
+            var localDate = new Date(y, mo, d, 0, 0, 0, 0);
+            return isNaN(localDate.getTime()) ? null : localDate;
+        }
+
+        var isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?(Z|[+-]\d{2}(?::?\d{2})?)?$/);
+        if (isoMatch) {
+            var yr = parseInt(isoMatch[1], 10);
+            var mon = parseInt(isoMatch[2], 10) - 1;
+            var day = parseInt(isoMatch[3], 10);
+            var hr = parseInt(isoMatch[4], 10);
+            var min = parseInt(isoMatch[5], 10);
+            var sec = isoMatch[6] ? parseInt(isoMatch[6], 10) : 0;
+            var msStr = isoMatch[7] || "0";
+            while (msStr.length < 3) msStr += "0";
+            var ms = parseInt(msStr.slice(0, 3), 10);
+            var tz = isoMatch[8];
+
+            if (!tz) {
+                var localDt = new Date(yr, mon, day, hr, min, sec, ms);
+                return isNaN(localDt.getTime()) ? null : localDt;
+            } else {
+                var parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) return parsed;
             }
         }
+
+        var fallback = new Date(s);
+        if (!isNaN(fallback.getTime())) return fallback;
         return null;
     }
 
@@ -193,11 +220,20 @@ QtObject {
     }
 
     function defaultTargetDate() {
-        return new Date(2026, 9, 25, 0, 0, 0, 0);
+        var now = new Date();
+        var year = now.getFullYear();
+        var endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+        var msRemaining = endOfYear.getTime() - now.getTime();
+        var fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+        if (msRemaining < fourteenDaysMs) {
+            return new Date(year + 1, 11, 31, 23, 59, 59, 999);
+        }
+        return endOfYear;
     }
 
     function defaultStartDate() {
-        return new Date(2026, 8, 3, 0, 0, 0, 0);
+        var now = new Date();
+        return new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
     }
 
     function isoWeekNumber(dateObj) {
@@ -226,6 +262,32 @@ QtObject {
 
     function resetBaselineToNow() {
         startTimestamp = formatHorizonDate(new Date());
+        lastCountdownSec = -1;
+        updateAllMetrics();
+        persistConfig();
+    }
+
+    function setMilestone(targetDateStr, startDateStr, title) {
+        if (targetDateStr instanceof Date) {
+            targetTimestamp = formatHorizonDate(targetDateStr);
+        } else if (targetDateStr !== undefined && targetDateStr !== null) {
+            targetTimestamp = targetDateStr.toString().trim();
+        } else {
+            targetTimestamp = "";
+        }
+
+        if (startDateStr instanceof Date) {
+            startTimestamp = formatHorizonDate(startDateStr);
+        } else if (startDateStr !== undefined && startDateStr !== null && startDateStr.toString().trim() !== "") {
+            startTimestamp = startDateStr.toString().trim();
+        } else {
+            startTimestamp = formatHorizonDate(new Date());
+        }
+
+        if (title !== undefined && title !== null && title.toString().trim() !== "") {
+            customTitle = title.toString().trim();
+        }
+
         lastCountdownSec = -1;
         updateAllMetrics();
         persistConfig();
@@ -448,8 +510,8 @@ QtObject {
 
     function applyConfig(cfg) {
         if (!cfg || typeof cfg !== "object") return;
-        if (cfg.targetTimestamp) targetTimestamp = cfg.targetTimestamp;
-        if (cfg.startTimestamp) startTimestamp = cfg.startTimestamp;
+        if (cfg.targetTimestamp !== undefined) targetTimestamp = cfg.targetTimestamp;
+        if (cfg.startTimestamp !== undefined) startTimestamp = cfg.startTimestamp;
         if (cfg.customTitle) customTitle = cfg.customTitle;
         if (cfg.themeMode) themeMode = cfg.themeMode;
         if (cfg.showMilliseconds !== undefined) showMilliseconds = cfg.showMilliseconds;

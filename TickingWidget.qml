@@ -43,8 +43,10 @@ Item {
             });
         }
         function selectTab(idx: int): void {
-            stateEngine.activeTab = idx;
-            stateEngine.updateAllMetrics();
+            if (idx >= 0 && idx <= 3) {
+                stateEngine.activeTab = idx;
+                stateEngine.updateAllMetrics();
+            }
         }
         function startStopwatch(): void { stateEngine.startStopwatch(); }
         function pauseStopwatch(): void { stateEngine.pauseStopwatch(); }
